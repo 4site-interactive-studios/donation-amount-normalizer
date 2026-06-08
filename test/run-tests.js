@@ -21,6 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { parseCSV } = require('./csv');
 
 const HTML_PATH = path.join(__dirname, '..', 'index.html');
 const CSV_PATH = path.join(__dirname, 'cases.csv');
@@ -44,22 +45,6 @@ function loadFromHtml() {
   vm.runInContext(misCode, sandbox, { filename: 'index.html#mislabels' });
   if (!sandbox.CurrencyNormalizer) throw new Error('CurrencyNormalizer not exported');
   return { N: sandbox.CurrencyNormalizer, mislabels: sandbox.__MISLABELS__ || {} };
-}
-
-// CSV parser that preserves spaces in unquoted fields.
-function parseCSV(text) {
-  const rows = []; let row = [], field = '', q = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (q) { if (ch === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; } else field += ch; }
-    else if (ch === '"') q = true;
-    else if (ch === ',') { row.push(field); field = ''; }
-    else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-    else if (ch === '\r') { /* skip */ }
-    else field += ch;
-  }
-  if (field !== '' || row.length) { row.push(field); rows.push(row); }
-  return rows;
 }
 
 const { N, mislabels } = loadFromHtml();
@@ -103,7 +88,6 @@ for (const key of Object.keys(mislabels)) {
  * Layer 2 — property grid                                             *
  * ------------------------------------------------------------------ */
 function group(intStr, sep) { return intStr.replace(/\B(?=(\d{3})+(?!\d))/g, sep); }
-function bare(cents) { const d = Math.floor(cents / 100), c = cents % 100; return c === 0 ? String(d) : d + '.' + (c < 10 ? '0' + c : '' + c); }
 
 const ints = ['0', '1', '5', '50', '999', '1000', '12345', '999999', '1000000', '12345678'];
 const cps = ['', '0', '5', '00', '99', '50', '07'];
@@ -111,7 +95,7 @@ for (const ip of ints) {
   for (const cp of cps) {
     const dollars = Number(ip);
     const cents2 = cp === '' ? 0 : Number((cp + '00').slice(0, 2));
-    const expected = bare(dollars * 100 + cents2);
+    const expected = N.bareNumber(dollars * 100 + cents2); // oracle = the SUT's own formatter
     const spellings = [
       group(ip, ',') + (cp ? '.' + cp : ''),   // US
       group(ip, '.') + (cp ? ',' + cp : ''),   // CA-FR

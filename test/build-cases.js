@@ -11,35 +11,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const { parseCSV } = require('./csv');
 
 const CSV_PATH = path.join(__dirname, 'cases.csv');
 const HTML_PATH = path.join(__dirname, '..', 'index.html');
-
-// Minimal RFC-4180-ish CSV parser that preserves leading/trailing spaces in
-// unquoted fields (some inputs are e.g. " $ 1 XYZ ").
-function parseCSV(text) {
-  const rows = [];
-  let row = [], field = '', inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (text[i + 1] === '"') { field += '"'; i++; }
-        else inQuotes = false;
-      } else field += ch;
-    } else if (ch === '"') {
-      inQuotes = true;
-    } else if (ch === ',') {
-      row.push(field); field = '';
-    } else if (ch === '\n') {
-      row.push(field); rows.push(row); row = []; field = '';
-    } else if (ch === '\r') {
-      // ignore; handled by \n
-    } else field += ch;
-  }
-  if (field !== '' || row.length) { row.push(field); rows.push(row); }
-  return rows;
-}
 
 const raw = fs.readFileSync(CSV_PATH, 'utf8');
 const rows = parseCSV(raw).filter(r => r.length >= 3 && !(r.length === 1 && r[0] === ''));

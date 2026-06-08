@@ -153,6 +153,10 @@
   var MAX_INT_DIGITS = 13;
 
   function foldUnicode(s) {
+    // NFKC folds full-width and compatibility digits/punctuation to ASCII, but it
+    // does NOT cover Arabic-Indic (U+0660–9), Extended Arabic-Indic / Persian
+    // (U+06F0–9), or the Arabic decimal/thousands separators (U+066B/066C) — those
+    // are folded manually below. Add new digit scripts here, not via NFKC.
     try { if (s && typeof s.normalize === 'function') s = s.normalize('NFKC'); } catch (e) {}
     s = s.replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 0x0660); });
     s = s.replace(/[۰-۹]/g, function (d) { return String(d.charCodeAt(0) - 0x06F0); });
@@ -175,7 +179,7 @@
     var keep, roundUp = false;
     if (fracDigits.length >= 2) {
       keep = fracDigits.slice(0, 2);
-      if (fracDigits.charCodeAt(2) >= 53) roundUp = true; // 3rd digit >= '5'
+      if (fracDigits.charAt(2) >= '5') roundUp = true; // round half-up on the 3rd digit
     } else {
       keep = (fracDigits + '00').slice(0, 2);
     }
@@ -209,7 +213,8 @@
       res.detection = 'EMPTY'; res.reasoning = 'No amount entered.'; return res;
     }
 
-    var s = foldUnicode(res.raw).replace(/[^0-9.,]/g, '');
+    var folded = foldUnicode(res.raw);
+    var s = folded.replace(/[^0-9.,]/g, '');
     if (s.replace(/[.,]/g, '').length === 0) {
       return impossible(res, 'No numbers — not a possible amount.');
     }
@@ -225,10 +230,10 @@
         decimalChar = lastComma > lastPeriod ? ',' : '.';
         intRegion = s.slice(0, lastPos);
         fracDigits = after;
-      } else if (after.length === 3) {
-        decimalChar = null; intRegion = s; fracDigits = '';   // lone separator = thousands
-      } else {
-        decimalChar = s.charAt(lastPos);                      // lone separator = decimal
+      } else if (after.length !== 3) {
+        // A lone separator with 3 digits after it is a thousands separator (the
+        // initialized defaults already cover that case); otherwise it is the decimal.
+        decimalChar = s.charAt(lastPos);
         intRegion = s.slice(0, lastPos);
         fracDigits = after;
       }
@@ -251,6 +256,8 @@
     res.normalized = bareNumber(cents);
     res.currency = formatCents(cents);
 
+    // A zero amount carries no format signal, so it is always UNIVERSAL (per the sheet),
+    // regardless of which separators were typed.
     if (cents === 0) res.detection = 'UNIVERSAL';
     else if (decimalChar === '.') res.detection = 'US';
     else if (decimalChar === ',') res.detection = 'CA-FR';
@@ -259,7 +266,7 @@
     else res.detection = 'UNIVERSAL';
 
     var parts = [];
-    if (/[^0-9.,]/.test(foldUnicode(res.raw))) parts.push('Removed non-numeric characters');
+    if (folded.length !== s.length) parts.push('Removed non-numeric characters');
     if (tsep) parts.push('Removed thousands separators');
     if (decimalChar === ',') parts.push('Converted comma decimal to period');
     if (cents % 100 === 0 && (decimalChar || tsep || fracDigits)) parts.push('Trimmed trailing zeros');
@@ -269,12 +276,8 @@
   }
 
   global.CurrencyNormalizer = {
-    normalize: normalize,
-    bareNumber: bareNumber,
-    formatCents: formatCents,
-    computeCents: computeCents,
-    validGrouping: validGrouping,
-    foldUnicode: foldUnicode
+    normalize: normalize,   // primary API; returns the full result object
+    bareNumber: bareNumber  // exposed for the test harness's value assertions
   };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* ==NORMALIZER_END== */
