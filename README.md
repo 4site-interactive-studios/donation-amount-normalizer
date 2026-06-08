@@ -5,7 +5,11 @@ almost any common **US** or **French-Canadian / international** format —
 malformed, incomplete, or grouped — and normalizes it to a clean USD value in
 real time, or rejects it as *not a possible number*.
 
-Built from scratch as a focused experiment; not tied to any framework or backend.
+This repo is **two things**: a working reference tool, and a **frozen benchmark**
+for rebuilding it from scratch so different AI models can be scored and compared
+over time (see [Benchmark](#benchmark)). The reference implementation here was
+built from scratch by **Claude Opus 4.8 Max** (2026-06-08) — it is the current
+top entry in the baseline table below. It is not tied to any framework or backend.
 
 ```
 40.15$        -> 40.15        (US)
@@ -87,3 +91,14 @@ The benchmark hands a model the candidate brief [`benchmark/PROMPT.md`](benchmar
 plus `benchmark/cases.csv` and asks it to rebuild this tool from scratch; the
 grader scores it objectively (correctness + generalization + robustness +
 requirements) per [`AGENTS.md`](AGENTS.md) to compare progress over time.
+
+### Baselines
+
+| Implementation | `cases.csv` output | Detection | Robustness (300k fuzz) |
+|---|---|---|---|
+| **Reference — Claude Opus 4.8 Max** (this repo) | **161 / 161** | **161 / 161** | 0 `NaN` · 0 throws |
+| ENgrid `0.25.6` `cleanAmount` (native baseline) | 160 / 161 | — (no detection) | 23,591 `NaN` · 0 throws |
+
+The reference implementation was produced by **Claude Opus 4.8 Max** and defines
+the 100% mark; ENgrid is the production baseline a new model should aim to beat
+(see [`COMPARISON.md`](COMPARISON.md)). Add a row per future model run.
