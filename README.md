@@ -52,6 +52,14 @@ Current status: **161 / 161 rows pass · 0 failures**, 300k-input fuzz clean.
 See [`TESTING.md`](TESTING.md) for the full testing plan, normalization rules,
 equivalence classes, `IMPOSSIBLE` rules, and residual risks.
 
+## Comparison vs. ENgrid
+
+[`COMPARISON.md`](COMPARISON.md) is a head-to-head against the native amount
+handling in [ENgrid](https://github.com/4site-interactive-studios/engrid-scripts)
+(`ENGrid.cleanAmount`), run against the same `cases.csv` benchmark + 300k fuzz via
+[`test/compare-engrid.js`](test/compare-engrid.js). It doubles as a reusable
+baseline ("beat ENgrid") for the benchmark below.
+
 ## Benchmark
 
 [`AGENTS.md`](AGENTS.md) is a frozen, self-contained benchmark brief: it states
