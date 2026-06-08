@@ -1,5 +1,10 @@
 # Testing Plan — Donation Amount Normalizer
 
+> **⚠️ GRADER / REFERENCE ONLY — do not show to a candidate under test.** This
+> describes how the *reference* solution is tested. The algorithm/answer key is
+> deliberately kept out of this file (see [`AGENTS.md`](AGENTS.md) Appendix B). To
+> run the benchmark, hand the candidate only the [`benchmark/`](benchmark/) folder.
+
 Goal: a donor can type a US or French-Canadian currency amount in essentially any
 common (or malformed, incomplete, international) form, and the page either shows
 the correct normalized value in real time or rejects it as **not a possible
@@ -24,7 +29,7 @@ Two separate guarantees, both tested:
    No exceptions, no `NaN`, no `Infinity`, no floating-point cent drift.
 2. **Correctness — defined inputs map to defined outputs.** Every row of
    `cases.csv` matches the sheet exactly. (Two rows were originally inconsistent;
-   they have since been corrected in the sheet — see §4.)
+   they have since been corrected in the sheet — see §3.)
 
 ---
 
@@ -46,36 +51,16 @@ status.
 
 ---
 
-## 3. Normalization rules (the spec under test)
-
-1. **Unicode fold** — `String.normalize('NFKC')` (full-width `１２．３４`→`12.34`),
-   then Arabic-Indic / Persian digits → ASCII and the Arabic decimal separator
-   (U+066B) → `,`.
-2. **Strip** everything except digits, `,` and `.` (spaces, `$`, letters, `/`,
-   NBSP, etc. are simply removed). No digits remain → **IMPOSSIBLE**.
-3. **Decimal decision** — the **rightmost** separator governs:
-   - if **both** `,` and `.` appear → the rightmost is the decimal point, the
-     other type is the thousands separator;
-   - if only **one** type appears → exactly **3** digits after the last one means
-     it is a thousands separator (no decimals: `1.234`→1234, `1,234`→1234);
-     **0/1/2/4+** digits means it is the decimal point (`1,5`→1.50, `12.34`→12.34).
-4. **Grouping validation** — the integer (grouping) region may contain only **one**
-   type of thousands separator, and every group must be a leading group of 1–3
-   digits followed by groups of exactly 3 digits. Otherwise → **IMPOSSIBLE**.
-   This is what rejects `1,00.10`, `1,0000.10`, `1,000.100,00`, etc.
-5. **Value** — leading zeros dropped; fraction rounded **half-up** to 2 digits
-   with integer cent math (`cents = dollars*100 + first2 + (3rd>=5?1:0)`), so no
-   floating-point drift. Integer part > 13 digits → rejected (keeps cents exact).
-6. **Detection** — zero value → `UNIVERSAL`; else period-decimal → `US`,
-   comma-decimal → `CA-FR`, comma-thousands → `US`, period-thousands → `CA-FR`,
-   no separators → `UNIVERSAL`.
-
-A space is never a separator (it is stripped), so `1 234,56` → `1234.56` works for
-fr-CA, and `25 50` → `2550` (the sheet's "remove any non-numbers" rule).
+> **The normalization rules, the equivalence-class behavior matrix, and the
+> IMPOSSIBLE algorithm have been moved out of this file.** They are the reference
+> solution's *answer key* and live in [`AGENTS.md`](AGENTS.md) Appendix B
+> (grader-only), so this testing doc does not reveal how the solution works to a
+> candidate rebuilding from the brief. The acceptance behavior itself is fully
+> defined by [`test/cases.csv`](test/cases.csv).
 
 ---
 
-## 4. The `cases.csv` suite (and the two corrected rows)
+## 3. The `cases.csv` suite (and the two corrected rows)
 
 All 160 data rows are baked into the page (injected from `cases.csv` by
 `test/build-cases.js`) and run live under **Test suite** (or `?selftest`). Each row
@@ -98,7 +83,7 @@ declared entry is never triggered (so the list can't go stale).
 
 ---
 
-## 5. Test layers & how to run
+## 4. Test layers & how to run
 
 | Layer | Where | What it proves |
 |------|-------|----------------|
@@ -123,45 +108,7 @@ offending row and exits 1 (CI-ready).
 
 ---
 
-## 6. Equivalence classes & boundaries
-
-| Class | Examples | Result |
-|-------|----------|--------|
-| Plain integer | `0`, `12`, `1234`, `$123` | bare integer, UNIVERSAL |
-| US decimal | `1.00`, `1.1`, `1234.12` | `1`, `1.10`, `1234.12`, US |
-| CA-FR decimal | `1,00`, `1,10`, `12,12$` | `1`, `1.10`, `12.12`, CA-FR |
-| US thousands | `1,234.10`, `12,345.00`, `1,234,567.10` | grouping removed, US |
-| CA-FR thousands | `1.234`, `1.234,10`, `1.234.567,00` | grouping removed, CA-FR |
-| Lone 3-digit group | `1.234`, `1,223` | thousands → `1234` / `1223` |
-| Symbols / noise | `$ 1 XYZ`, `1.00$`, `CA$ 75,25` | symbols stripped |
-| Full-width / Arabic | `１２３４．５６`, `0٫99` | folded → `1234.56`, `0.99` |
-| Zero | `0`, `0.0`, `0,00` | `0`, UNIVERSAL |
-| IMPOSSIBLE | `1,00.10`, `1,0000.10`, `1,000.100,00`, `XYZ` | rejected (§7) |
-| Too large | 14+ integer digits | rejected |
-| Boundary: digits after a lone separator | 0,1,2,**3**,4 | 3 → thousands; otherwise decimal |
-| Boundary: group sizes | first 1–3, rest exactly 3 | anything else → IMPOSSIBLE |
-| Boundary: rounding half-up | `x.xx4`↓ / `x.xx5`↑ | integer cent carry exact |
-
----
-
-## 7. IMPOSSIBLE rules (from the sheet, generalized)
-
-An input is rejected when:
-
-- it contains **no digits** (`XYZ`);
-- the integer/grouping region mixes **both** `,` and `.` as thousands separators —
-  this catches every "two commas sandwich a period" / "two decimal separators"
-  case (`1,000.100,00`, `1,000.100.10`, `1.000,100,10`, `1.100,000.10`,
-  `1,000.100,000.10`);
-- a thousands group is **not** the leading group of 1–3 digits followed by groups
-  of exactly 3 (`1,00.10` — `00` too short; `1,0000.10` — `0000` too long);
-- the integer part exceeds 13 digits.
-
-All eight IMPOSSIBLE rows in the sheet are reproduced by these checks.
-
----
-
-## 8. Manual / UX / accessibility checklist
+## 5. Manual / UX / accessibility checklist
 
 - [ ] Typing updates the normalized field on every keystroke; the raw input is never rewritten (caret never jumps).
 - [ ] Empty input → neutral "Enter an amount"; IMPOSSIBLE → red status; valid → green with the `$` rendering.
@@ -183,7 +130,7 @@ iOS/Android.
 
 ---
 
-## 9. Regression policy
+## 6. Regression policy
 
 - `cases.csv` is the contract. Edit it, run `build-cases.js`, then `run-tests.js`;
   the embedded page data and the headless suite stay in lock-step.

@@ -1,0 +1,162 @@
+Input,Output,Fromat Detection,Formatting Reasoning
+0,0,UNIVERSAL,No changes
+0.0,0,UNIVERSAL,Add missing decimal value. Trimmed trailing zeroes
+"1,00.10",0,IMPOSSIBLE,"Contains a group of integer values, that is not the first group of values, that is less than three"
+"1,000.100,00",0,IMPOSSIBLE,Two commas sandwich a period. That's not a possible number
+"1,000.100,000.10",0,IMPOSSIBLE,Two periods sandwich a comma. Two commas sandwich a period. That's not a possible number
+"1,000.100.10",0,IMPOSSIBLE,Contains two decimal seperators. That's not a possible number
+"1,0000.10",0,IMPOSSIBLE,"Contains a group of integer values, that is not the only group of values, that is greater than three"
+"1.000,100,10",0,IMPOSSIBLE,Contains two decimal seperators. That's not a possible number
+"1.100,000.10",0,IMPOSSIBLE,Two periods sandwich a comma. That's not a possible number
+XYZ,0,IMPOSSIBLE,No numbers. That's not a possible number
+ $ 1 XYZ ,1,UNIVERSAL,Remove any non numbers other than periods and commas
+" $ 1,00 XYZ ",1,CA-FR,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+ $ 1.00 XYZ ,1,US,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+ 1 ,1,UNIVERSAL,Remove any non numbers other than periods and commas
+" 1,00 ",1,CA-FR,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+ 1.00 ,1,US,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+$1,1,UNIVERSAL,Remove any non numbers other than periods and commas
+"$1,00",1,CA-FR,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+$1.00,1,US,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+1,1,UNIVERSAL,No changes
+"1,00$",1,CA-FR,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+1.00,1,US,Trimmed trailing zeroes
+1.00$,1,US,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+1$,1,UNIVERSAL,Remove any non numbers other than periods and commas
+" $ 1,1 XYZ ",1.10,CA-FR,Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+" $ 1,10 XYZ ",1.10,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+ $ 1.1 XYZ ,1.10,US,Add missing decimal value. Remove any non numbers other than periods and commas
+ $ 1.10 XYZ ,1.10,US,Remove any non numbers other than periods and commas
+" 1,1 ",1.10,CA-FR,Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+" 1,10 ",1.10,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+ 1.1 ,1.10,US,Add missing decimal value. Remove any non numbers other than periods and commas
+ 1.10 ,1.10,US,Remove any non numbers other than periods and commas
+"$1,1",1.10,CA-FR,Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+"$1,10",1.10,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+$1.1,1.10,US,Add missing decimal value. Remove any non numbers other than periods and commas
+$1.10,1.10,US,Remove any non numbers other than periods and commas
+"1,1$",1.10,CA-FR,Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+"1,10$",1.10,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+1.1,1.10,US,Add missing decimal value
+1.1$,1.10,US,Add missing decimal value. Remove any non numbers other than periods and commas
+1.10,1.10,US,Do nothing
+1.10$,1.10,US,Remove any non numbers other than periods and commas
+" $ 1,12 XYZ ",1.12,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+ $ 1.12 XYZ ,1.12,US,Remove any non numbers other than periods and commas
+" 1,012",1012,US,Remove any non numbers other than periods and commas. Removed thousands seperators
+ 1.12 ,1.12,US,Remove any non numbers other than periods and commas
+"$1,12",1.12,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+$1.12,1.12,US,Remove any non numbers other than periods and commas
+"1,12$",1.12,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+1.12,1.12,US,Do nothing
+1.12$,1.12,US,Remove any non numbers other than periods and commas
+$12,12,UNIVERSAL,Remove any non numbers other than periods and commas
+"$12,00",12,CA-FR,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+$12.00,12,US,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+12,12,UNIVERSAL,No changes
+"12,00$",12,CA-FR,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+12.00,12,US,Trimmed trailing zeroes
+12.00$,12,US,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+12$,12,UNIVERSAL,Remove any non numbers other than periods and commas
+"$12,1",12.10,CA-FR,Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+"$12,10",12.10,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+$12.1,12.10,US,Add missing decimal value. Remove any non numbers other than periods and commas
+$12.10,12.10,US,Remove any non numbers other than periods and commas
+"12,1$",12.10,CA-FR,Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+"12,10$",12.10,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+12.1,12.10,US,Add missing decimal value
+12.1$,12.10,US,Add missing decimal value. Remove any non numbers other than periods and commas
+12.10,12.10,US,Do nothing
+12.10$,12.10,US,Remove any non numbers other than periods and commas
+"$12,12",12.12,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+$12.12,12.12,US,Remove any non numbers other than periods and commas
+"12,12$",12.12,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+12.12,12.12,US,Do nothing
+12.12$,12.12,US,Remove any non numbers other than periods and commas
+$123,123,UNIVERSAL,Remove any non numbers other than periods and commas
+"$123,00",123,CA-FR,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+$123.00,123,US,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+123,123,UNIVERSAL,No changes
+"123,00$",123,CA-FR,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+123.00,123,US,Trimmed trailing zeroes
+123.00$,123,US,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+123$,123,UNIVERSAL,Remove any non numbers other than periods and commas
+"$123,1",123.10,CA-FR,Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+"$123,10",123.10,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+$123.1,123.10,US,Add missing decimal value. Remove any non numbers other than periods and commas
+$123.10,123.10,US,Remove any non numbers other than periods and commas
+"123,1$",123.10,CA-FR,Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+"123,10$",123.10,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+123.1,123.10,US,Add missing decimal value
+123.1$,123.10,US,Add missing decimal value. Remove any non numbers other than periods and commas
+123.10,123.10,US,Do nothing
+123.10$,123.10,US,Remove any non numbers other than periods and commas
+"$123,12",123.12,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+$123.12,123.12,US,Remove any non numbers other than periods and commas
+"123,12$",123.12,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+123.12,123.12,US,Do nothing
+123.12$,123.12,US,Remove any non numbers other than periods and commas
+$1234,1234,UNIVERSAL,Remove any non numbers other than periods and commas
+"$1234,00",1234,CA-FR,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+$1234.00,1234,US,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+"1,223",1223,US,Removed thousands seperators
+"1,234,00",1234,CA-FR,Removed thousands seperators. Trimmed trailing zeroes
+"1,234.00",1234,US,Removed thousands seperators. Trimmed trailing zeroes
+1.234,1234,CA-FR,Removed thousands seperators
+1234,1234,UNIVERSAL,No changes
+"1234,00$",1234,CA-FR,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+1234.00,1234,US,Trimmed trailing zeroes
+1234.00$,1234,US,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+1234$,1234,UNIVERSAL,Remove any non numbers other than periods and commas
+"$1234,1",1234.10,CA-FR,Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+"$1234,10",1234.10,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+$1234.1,1234.10,US,Add missing decimal value. Remove any non numbers other than periods and commas
+$1234.10,1234.10,US,Remove any non numbers other than periods and commas
+"1,234.10",1234.10,US,Removed thousands seperators
+"1.234,10",1234.10,CA-FR,Removed thousands seperators. Swapped decimal seperator for period.
+"1234,1$",1234.10,CA-FR,Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+"1234,10$",1234.10,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+1234.1,1234.10,US,Add missing decimal value
+1234.1$,1234.10,US,Add missing decimal value. Remove any non numbers other than periods and commas
+1234.10,1234.10,US,Do nothing
+1234.10$,1234.10,US,Remove any non numbers other than periods and commas
+"$1234,12",1234.12,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+$1234.12,1234.12,US,Remove any non numbers other than periods and commas
+"1234,12$",1234.12,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+1234.12,1234.12,US,Do nothing
+1234.12$,1234.12,US,Remove any non numbers other than periods and commas
+$12345,12345,UNIVERSAL,Remove any non numbers other than periods and commas
+"$12345,00",12345,CA-FR,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+$12345.00,12345,US,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+"12,345.00",12345,US,Removed thousands seperators. Trimmed trailing zeroes
+"12.345,00",12345,CA-FR,Removed thousands seperators. Trimmed trailing zeroes
+12345,12345,UNIVERSAL,No changes
+"12345,00$",12345,CA-FR,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+12345.00,12345,US,Trimmed trailing zeroes
+12345.00$,12345,US,Trimmed trailing zeroes. Remove any non numbers other than periods and commas
+12345$,12345,UNIVERSAL,Remove any non numbers other than periods and commas
+"$12345,1",12345.10,CA-FR,Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+"$12345,10",12345.10,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+$12345.1,12345.10,US,Add missing decimal value. Remove any non numbers other than periods and commas
+$12345.10,12345.10,US,Remove any non numbers other than periods and commas
+"12,345.10",12345.10,US,Removed thousands seperators
+"12.345,10",12345.10,CA-FR,Removed thousands seperators. Swapped decimal seperator for period.
+"12345,1$",12345.10,CA-FR,Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+"12345,10$",12345.10,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+12345.1,12345.10,US,Add missing decimal value
+12345.1$,12345.10,US,Add missing decimal value. Remove any non numbers other than periods and commas
+12345.10,12345.10,US,Do nothing
+12345.10$,12345.10,US,Remove any non numbers other than periods and commas
+"$12345,12",12345.12,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+$12345.12,12345.12,US,Remove any non numbers other than periods and commas
+"12345,12$",12345.12,CA-FR,Remove any non numbers other than periods and commas. Swapped decimal seperator for period.
+12345.12,12345.12,US,Do nothing
+12345.12$,12345.12,US,Remove any non numbers other than periods and commas
+"123,456.00",123456,US,Removed thousands seperators. Trimmed trailing zeroes
+"123.456,00",123456,CA-FR,Removed thousands seperators. Trimmed trailing zeroes
+"123,456.10",123456.10,US,Removed thousands seperators
+"123.456,10",123456.10,CA-FR,Removed thousands seperators. Swapped decimal seperator for period.
+"1,234,567.00",1234567,US,Removed thousands seperators. Trimmed trailing zeroes
+"1.234.567,00",1234567,CA-FR,Removed thousands seperators. Trimmed trailing zeroes
+"1,234,567.10",1234567.10,US,Removed thousands seperators
+"1.234.567,10",1234567.10,CA-FR,Removed thousands seperators. Swapped decimal seperator for period.

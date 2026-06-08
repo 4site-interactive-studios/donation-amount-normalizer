@@ -1,5 +1,9 @@
 # Comparison — This normalizer vs. ENgrid's native `cleanAmount`
 
+> **⚠️ GRADER / REFERENCE ONLY — do not show to a candidate under test.** This
+> contains an answer-key section (edge-case decisions). It is part of the grader
+> material; the candidate-facing brief is in [`benchmark/`](benchmark/).
+
 A head-to-head between this repo's currency normalizer and the **native amount
 handling in [ENgrid](https://github.com/4site-interactive-studios/engrid-scripts)**
 (the Engaging Networks front-end framework), which already solves the same donor

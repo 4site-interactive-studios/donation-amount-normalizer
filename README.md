@@ -39,18 +39,39 @@ python3 -m http.server 8765      # then visit http://localhost:8765/
 
 The behavioral spec lives in [`test/cases.csv`](test/cases.csv) (161 rows). The
 harness extracts the **exact** normalizer shipped in `index.html` and runs it
-against every row, plus a property grid, an idempotency check, and 300,000 fuzz
-inputs (proving it never throws).
+against every row, plus a property grid, an idempotency check, a bundle-sync guard,
+and 300,000 fuzz inputs (proving it never throws).
 
 ```bash
 node test/run-tests.js        # full suite + fuzz; exit 0 = green
-node test/build-cases.js      # re-inject cases.csv into index.html after editing the sheet
+node test/build-cases.js      # regenerate every derived copy of cases.csv after editing the sheet
+node test/compare-engrid.js   # head-to-head vs ENgrid's native cleanAmount
 ```
 
 Current status: **161 / 161 rows pass · 0 failures**, 300k-input fuzz clean.
 
-See [`TESTING.md`](TESTING.md) for the full testing plan, normalization rules,
-equivalence classes, `IMPOSSIBLE` rules, and residual risks.
+`test/cases.csv` is the single source of truth; `build-cases.js` regenerates the
+embedded copies (in `index.html`, `AGENTS.md` Appendix A, and `benchmark/cases.csv`)
+and `run-tests.js` fails if any drift, so they can never fall out of sync.
+
+## Repository layout
+
+> **The repo root is the reference solution + grader material.** When running the
+> benchmark against another model, hand it **only the [`benchmark/`](benchmark/)
+> folder** — everything else is an answer key.
+
+| Path | Audience | Contents |
+|------|----------|----------|
+| [`benchmark/`](benchmark/) | **candidate** | `PROMPT.md` (the brief) + `cases.csv` — the only thing a candidate receives |
+| `index.html` | grader / public | the reference solution (also the live demo) |
+| [`AGENTS.md`](AGENTS.md) | grader | how to run the benchmark, scoring rubric, and the answer key (Appendix B) |
+| [`TESTING.md`](TESTING.md) | grader | how the reference is tested (methodology only) |
+| [`COMPARISON.md`](COMPARISON.md) | grader | head-to-head vs ENgrid + edge-case answer key |
+| `test/` | grader | harness, comparison script, canonical `cases.csv` |
+
+`TESTING.md`, `COMPARISON.md`, and `AGENTS.md` carry a grader-only banner; the
+reference algorithm lives only in `AGENTS.md` Appendix B so the other docs don't
+leak hints.
 
 ## Comparison vs. ENgrid
 
@@ -58,12 +79,11 @@ equivalence classes, `IMPOSSIBLE` rules, and residual risks.
 handling in [ENgrid](https://github.com/4site-interactive-studios/engrid-scripts)
 (`ENGrid.cleanAmount`), run against the same `cases.csv` benchmark + 300k fuzz via
 [`test/compare-engrid.js`](test/compare-engrid.js). It doubles as a reusable
-baseline ("beat ENgrid") for the benchmark below.
+baseline ("beat ENgrid") for the benchmark.
 
 ## Benchmark
 
-[`AGENTS.md`](AGENTS.md) is a frozen, self-contained benchmark brief: it states
-the problem, the output contract, and bundles [`test/cases.csv`](test/cases.csv)
-as the authoritative acceptance set, so different AI models can be asked to
-rebuild this tool from scratch and scored objectively (correctness +
-generalization + robustness + requirements) to compare progress over time.
+The benchmark hands a model the candidate brief [`benchmark/PROMPT.md`](benchmark/PROMPT.md)
+plus `benchmark/cases.csv` and asks it to rebuild this tool from scratch; the
+grader scores it objectively (correctness + generalization + robustness +
+requirements) per [`AGENTS.md`](AGENTS.md) to compare progress over time.

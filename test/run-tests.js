@@ -56,6 +56,27 @@ function check(label, cond, detail) {
 }
 
 /* ------------------------------------------------------------------ *
+ * Layer 0 — bundle sync: every copy of cases.csv must match the       *
+ * canonical test/cases.csv (else someone edited the sheet without     *
+ * running `node test/build-cases.js`).                                 *
+ * ------------------------------------------------------------------ */
+const canonCsv = fs.readFileSync(CSV_PATH, 'utf8');
+(function () {
+  let bench = null;
+  try { bench = fs.readFileSync(path.join(__dirname, '..', 'benchmark', 'cases.csv'), 'utf8'); } catch (e) {}
+  check('SYNC benchmark/cases.csv == test/cases.csv', bench === canonCsv,
+    bench === null ? 'missing — run `node test/build-cases.js`' : 'differs — run `node test/build-cases.js`');
+
+  const agents = fs.readFileSync(path.join(__dirname, '..', 'AGENTS.md'), 'utf8');
+  const s = agents.indexOf('<!-- CASES_CSV_START -->'), e = agents.indexOf('<!-- CASES_CSV_END -->');
+  const embedded = (s !== -1 && e !== -1)
+    ? agents.slice(s, e).replace(/[\s\S]*?```csv\n/, '').replace(/\n```\s*$/, '')
+    : null;
+  check('SYNC AGENTS.md Appendix A == test/cases.csv', embedded === canonCsv.replace(/\s+$/, ''),
+    embedded === null ? 'markers missing' : 'differs — run `node test/build-cases.js`');
+})();
+
+/* ------------------------------------------------------------------ *
  * Layer 1 — cases.csv                                                 *
  * ------------------------------------------------------------------ */
 const csvRows = parseCSV(fs.readFileSync(CSV_PATH, 'utf8')).filter(r => r.length >= 3);
