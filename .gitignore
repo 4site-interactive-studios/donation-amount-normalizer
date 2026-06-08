@@ -1,0 +1,7 @@
+# Machine-local Claude Code settings (permissions, etc.) — not for sharing
+.claude/settings.local.json
+
+# OS / editor cruft
+.DS_Store
+node_modules/
+*.log

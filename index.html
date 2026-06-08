@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Donation Amount Normalizer (USD)</title>
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --panel-2: #273449; --text: #e2e8f0;
+    --muted: #94a3b8; --line: #334155; --ok: #22c55e; --ok-bg: #052e16;
+    --warn: #f59e0b; --warn-bg: #3a2a06; --err: #f87171; --err-bg: #3a0d0d;
+    --accent: #38bdf8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 32px 16px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; font-size: 0.95rem; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+  .fields { display: flex; gap: 16px; align-items: stretch; flex-wrap: wrap; }
+  .field { flex: 1 1 240px; min-width: 220px; }
+  label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+  input[type="text"] {
+    width: 100%; font-size: 1.4rem; padding: 14px 16px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  input[readonly] { background: #0b1220; color: var(--ok); font-weight: 700; cursor: default; }
+  .status { margin-top: 14px; padding: 12px 14px; border-radius: 10px; font-size: 0.92rem;
+    border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); min-height: 1.2em; }
+  .status.ok { color: var(--ok); background: var(--ok-bg); border-color: #14532d; }
+  .status.err { color: var(--err); background: var(--err-bg); border-color: #5b1212; }
+  .meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; color: var(--muted); font-size: 0.82rem; }
+  .meta b { color: var(--text); font-variant-numeric: tabular-nums; }
+  h2 { font-size: 1rem; margin: 0 0 12px; color: var(--text); }
+  .examples { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+    border-radius: 999px; padding: 7px 12px; font-size: 0.85rem; cursor: pointer; font-variant-numeric: tabular-nums; }
+  .chip:hover { border-color: var(--accent); }
+  .legend { color: var(--muted); font-size: 0.82rem; margin-top: 8px; }
+  button.run { margin: 4px 0; border: 1px solid var(--accent); background: transparent; color: var(--accent);
+    border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 0.9rem; }
+  .summary { margin: 12px 0; font-weight: 700; }
+  .tablewrap { max-height: 460px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+  th, td { text-align: left; padding: 5px 9px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel-2); }
+  tr.pass td.s { color: var(--ok); }
+  tr.mislabel { background: var(--warn-bg); }
+  tr.mislabel td.s { color: var(--warn); font-weight: 700; }
+  tr.fail { background: var(--err-bg); }
+  tr.fail td.s { color: var(--err); font-weight: 700; }
+  td.in { color: var(--text); }
+  code { background: var(--panel-2); padding: 1px 5px; border-radius: 4px; }
+  .filterbtns { display: flex; gap: 8px; margin: 8px 0; }
+  .filterbtns button { border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+    border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: 0.8rem; }
+  .filterbtns button.active { color: var(--text); border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Donation Amount Normalizer</h1>
+  <p class="sub">Type an amount in any common US or French&#8209;Canadian format &mdash; malformed, incomplete, or international. It normalizes to a clean USD value in real time, or rejects inputs that aren&rsquo;t a possible number.</p>
+
+  <div class="card">
+    <div class="fields">
+      <div class="field">
+        <label for="raw">You enter</label>
+        <input id="raw" type="text" inputmode="text" autocomplete="off" autocapitalize="off"
+               spellcheck="false" maxlength="40" placeholder="e.g. 55.123,45  or  40.15$" />
+      </div>
+      <div class="field">
+        <label for="normalized">Normalized value</label>
+        <input id="normalized" type="text" readonly tabindex="-1" placeholder="0" aria-live="polite" />
+      </div>
+    </div>
+    <div id="status" class="status" role="status" aria-live="polite">Enter an amount above.</div>
+    <div class="meta">
+      <span>Detection: <b id="m-det">&mdash;</b></span>
+      <span>As currency: <b id="m-cur">&mdash;</b></span>
+      <span>Cents: <b id="m-cents">&mdash;</b></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Try these</h2>
+    <div class="examples" id="examples"></div>
+    <p class="legend">Each example fills the input so you can watch it normalize.</p>
+  </div>
+
+  <div class="card">
+    <h2>Test suite (from <code>cases.csv</code>)</h2>
+    <p class="legend">Runs the exact normalizer shipped on this page against every row of the supplied
+      spreadsheet. <b>PASS</b> = matches the sheet. <b>MISLABEL</b> = the sheet row is internally
+      inconsistent or wrong; the corrected expectation is shown. Open with <code>?selftest</code> to run automatically.</p>
+    <button class="run" id="runTests" type="button">Run test suite</button>
+    <div id="summary" class="summary"></div>
+    <div class="filterbtns" id="filters" hidden>
+      <button data-f="all" class="active">All</button>
+      <button data-f="mislabel">Mislabels only</button>
+      <button data-f="fail">Failures only</button>
+    </div>
+    <div class="tablewrap" id="testWrap" hidden>
+      <table>
+        <thead><tr><th>Input</th><th>Sheet&nbsp;out</th><th>Got</th><th>Sheet&nbsp;detect</th><th>Got</th><th>Status</th></tr></thead>
+        <tbody id="testBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==NORMALIZER_START==
+ * Self-contained currency normalizer. Works in the browser and when eval'd in
+ * Node (the test harness extracts everything between these markers and runs it).
+ * No external dependencies. Pure functions. Guaranteed never to throw.
+ *
+ * Output contract (matches cases.csv):
+ *   - normalized: a BARE number string, no "$" and no thousands separators,
+ *     with exactly 2 decimals unless the value is whole (then no decimals):
+ *     1.00 -> "1", 1.1 -> "1.10", 1234.10 -> "1234.10", 0.0 -> "0".
+ *   - detection: 'US' (period decimal / comma thousands),
+ *                'CA-FR' (comma decimal / period thousands),
+ *                'UNIVERSAL' (no separators, or value is zero),
+ *                'IMPOSSIBLE' (not a possible number), or 'EMPTY'.
+ *
+ * Disambiguation:
+ *   1. Fold unicode (NFKC + Arabic/Persian digits & separators -> ASCII).
+ *   2. Strip everything except digits, "," and ".".  (Spaces, "$", letters,
+ *      etc. are simply removed.)  No digits left -> IMPOSSIBLE.
+ *   3. The RIGHTMOST separator decides the decimal point:
+ *        - if BOTH "," and "." appear, the rightmost is the decimal, the other
+ *          type is the thousands separator;
+ *        - if only ONE type appears, then 3 digits after the last one means it
+ *          is a thousands separator (no decimals); 0/1/2/4+ digits means it is
+ *          the decimal point.
+ *   4. The integer (grouping) region may contain only ONE type of thousands
+ *      separator, and every group must be a leading group of 1-3 digits followed
+ *      by groups of exactly 3 digits — otherwise IMPOSSIBLE.
+ *   5. Fraction rounded HALF-UP to 2 digits with integer cent math (no floats).
+ *      Integer part > 13 digits -> rejected (keeps cents exact).
+ */
+(function (global) {
+  'use strict';
+
+  var MAX_INT_DIGITS = 13;
+
+  function foldUnicode(s) {
+    try { if (s && typeof s.normalize === 'function') s = s.normalize('NFKC'); } catch (e) {}
+    s = s.replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 0x0660); });
+    s = s.replace(/[۰-۹]/g, function (d) { return String(d.charCodeAt(0) - 0x06F0); });
+    s = s.replace(/٫/g, ',').replace(/٬/g, '');
+    return s;
+  }
+
+  function validGrouping(region, sep) {
+    var groups = region.split(sep);
+    for (var i = 0; i < groups.length; i++) {
+      if (!/^[0-9]+$/.test(groups[i])) return false;
+      if (i === 0) { if (groups[i].length < 1 || groups[i].length > 3) return false; }
+      else if (groups[i].length !== 3) return false;
+    }
+    return true;
+  }
+
+  function computeCents(intDigits, fracDigits) {
+    var dollars = Number(intDigits || '0');
+    var keep, roundUp = false;
+    if (fracDigits.length >= 2) {
+      keep = fracDigits.slice(0, 2);
+      if (fracDigits.charCodeAt(2) >= 53) roundUp = true; // 3rd digit >= '5'
+    } else {
+      keep = (fracDigits + '00').slice(0, 2);
+    }
+    return dollars * 100 + Number(keep) + (roundUp ? 1 : 0);
+  }
+
+  function bareNumber(cents) {
+    var dollars = Math.floor(cents / 100), c = cents % 100;
+    return c === 0 ? String(dollars) : String(dollars) + '.' + (c < 10 ? '0' + c : String(c));
+  }
+
+  function formatCents(cents) {
+    if (typeof cents !== 'number' || !isFinite(cents)) return '';
+    var c = Math.abs(Math.round(cents));
+    var dollars = Math.floor(c / 100), rem = c % 100;
+    var dollarStr = String(dollars).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return '$' + dollarStr + '.' + (rem < 10 ? '0' + rem : String(rem));
+  }
+
+  function impossible(res, why) {
+    res.detection = 'IMPOSSIBLE'; res.valid = false; res.normalized = '0';
+    res.cents = 0; res.currency = ''; res.reasoning = why; return res;
+  }
+
+  function normalize(raw) {
+    var res = {
+      raw: raw == null ? '' : String(raw),
+      detection: 'EMPTY', valid: false, normalized: '', cents: 0, currency: '', reasoning: ''
+    };
+    if (res.raw.replace(/^\s+|\s+$/g, '') === '') {
+      res.detection = 'EMPTY'; res.reasoning = 'No amount entered.'; return res;
+    }
+
+    var s = foldUnicode(res.raw).replace(/[^0-9.,]/g, '');
+    if (s.replace(/[.,]/g, '').length === 0) {
+      return impossible(res, 'No numbers — not a possible amount.');
+    }
+
+    var lastComma = s.lastIndexOf(','), lastPeriod = s.lastIndexOf('.');
+    var bothTypes = lastComma !== -1 && lastPeriod !== -1;
+    var decimalChar = null, intRegion = s, fracDigits = '';
+
+    if (lastComma !== -1 || lastPeriod !== -1) {
+      var lastPos = Math.max(lastComma, lastPeriod);
+      var after = s.slice(lastPos + 1).replace(/[^0-9]/g, '');
+      if (bothTypes) {
+        decimalChar = lastComma > lastPeriod ? ',' : '.';
+        intRegion = s.slice(0, lastPos);
+        fracDigits = after;
+      } else if (after.length === 3) {
+        decimalChar = null; intRegion = s; fracDigits = '';   // lone separator = thousands
+      } else {
+        decimalChar = s.charAt(lastPos);                      // lone separator = decimal
+        intRegion = s.slice(0, lastPos);
+        fracDigits = after;
+      }
+    }
+
+    // The grouping region may use only ONE type of thousands separator, in valid groups.
+    var rc = intRegion.indexOf(',') !== -1, rp = intRegion.indexOf('.') !== -1;
+    if (rc && rp) return impossible(res, 'Two separator types in the integer part — not a possible number.');
+    var tsep = rc ? ',' : (rp ? '.' : null);
+    if (tsep && !validGrouping(intRegion, tsep)) {
+      return impossible(res, 'Invalid digit grouping — not a possible number.');
+    }
+
+    var intDigits = intRegion.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+    if (intDigits === '') intDigits = '0';
+    if (intDigits.length > MAX_INT_DIGITS) return impossible(res, 'Amount is too large to process.');
+
+    var cents = computeCents(intDigits, fracDigits);
+    res.cents = cents; res.valid = true;
+    res.normalized = bareNumber(cents);
+    res.currency = formatCents(cents);
+
+    if (cents === 0) res.detection = 'UNIVERSAL';
+    else if (decimalChar === '.') res.detection = 'US';
+    else if (decimalChar === ',') res.detection = 'CA-FR';
+    else if (tsep === ',') res.detection = 'US';
+    else if (tsep === '.') res.detection = 'CA-FR';
+    else res.detection = 'UNIVERSAL';
+
+    var parts = [];
+    if (/[^0-9.,]/.test(foldUnicode(res.raw))) parts.push('Removed non-numeric characters');
+    if (tsep) parts.push('Removed thousands separators');
+    if (decimalChar === ',') parts.push('Converted comma decimal to period');
+    if (cents % 100 === 0 && (decimalChar || tsep || fracDigits)) parts.push('Trimmed trailing zeros');
+    else if (fracDigits.length === 1) parts.push('Padded missing decimal digit');
+    res.reasoning = parts.length ? parts.join('. ') + '.' : 'No changes.';
+    return res;
+  }
+
+  global.CurrencyNormalizer = {
+    normalize: normalize,
+    bareNumber: bareNumber,
+    formatCents: formatCents,
+    computeCents: computeCents,
+    validGrouping: validGrouping,
+    foldUnicode: foldUnicode
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+/* ==NORMALIZER_END== */
+
+/* ==CASES_START== */
+window.__CASES__ = [{"input":"0","output":"0","detection":"UNIVERSAL","reasoning":"No changes"},{"input":"0.0","output":"0","detection":"UNIVERSAL","reasoning":"Add missing decimal value. Trimmed trailing zeroes"},{"input":"1,00.10","output":"0","detection":"IMPOSSIBLE","reasoning":"Contains a group of integer values, that is not the first group of values, that is less than three"},{"input":"1,000.100,00","output":"0","detection":"IMPOSSIBLE","reasoning":"Two commas sandwich a period. That's not a possible number"},{"input":"1,000.100,000.10","output":"0","detection":"IMPOSSIBLE","reasoning":"Two periods sandwich a comma. Two commas sandwich a period. That's not a possible number"},{"input":"1,000.100.10","output":"0","detection":"IMPOSSIBLE","reasoning":"Contains two decimal seperators. That's not a possible number"},{"input":"1,0000.10","output":"0","detection":"IMPOSSIBLE","reasoning":"Contains a group of integer values, that is not the only group of values, that is greater than three"},{"input":"1.000,100,10","output":"0","detection":"IMPOSSIBLE","reasoning":"Contains two decimal seperators. That's not a possible number"},{"input":"1.100,000.10","output":"0","detection":"IMPOSSIBLE","reasoning":"Two periods sandwich a comma. That's not a possible number"},{"input":"XYZ","output":"0","detection":"IMPOSSIBLE","reasoning":"No numbers. That's not a possible number"},{"input":" $ 1 XYZ ","output":"1","detection":"UNIVERSAL","reasoning":"Remove any non numbers other than periods and commas"},{"input":" $ 1,00 XYZ ","output":"1","detection":"CA-FR","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":" $ 1.00 XYZ ","output":"1","detection":"US","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":" 1 ","output":"1","detection":"UNIVERSAL","reasoning":"Remove any non numbers other than periods and commas"},{"input":" 1,00 ","output":"1","detection":"CA-FR","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":" 1.00 ","output":"1","detection":"US","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"$1","output":"1","detection":"UNIVERSAL","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$1,00","output":"1","detection":"CA-FR","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"$1.00","output":"1","detection":"US","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"1","output":"1","detection":"UNIVERSAL","reasoning":"No changes"},{"input":"1,00$","output":"1","detection":"CA-FR","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"1.00","output":"1","detection":"US","reasoning":"Trimmed trailing zeroes"},{"input":"1.00$","output":"1","detection":"US","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"1$","output":"1","detection":"UNIVERSAL","reasoning":"Remove any non numbers other than periods and commas"},{"input":" $ 1,1 XYZ ","output":"1.10","detection":"CA-FR","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":" $ 1,10 XYZ ","output":"1.10","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":" $ 1.1 XYZ ","output":"1.10","detection":"US","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas"},{"input":" $ 1.10 XYZ ","output":"1.10","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":" 1,1 ","output":"1.10","detection":"CA-FR","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":" 1,10 ","output":"1.10","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":" 1.1 ","output":"1.10","detection":"US","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas"},{"input":" 1.10 ","output":"1.10","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$1,1","output":"1.10","detection":"CA-FR","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$1,10","output":"1.10","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$1.1","output":"1.10","detection":"US","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas"},{"input":"$1.10","output":"1.10","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"1,1$","output":"1.10","detection":"CA-FR","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"1,10$","output":"1.10","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"1.1","output":"1.10","detection":"US","reasoning":"Add missing decimal value"},{"input":"1.1$","output":"1.10","detection":"US","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas"},{"input":"1.10","output":"1.10","detection":"US","reasoning":"Do nothing"},{"input":"1.10$","output":"1.10","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":" $ 1,12 XYZ ","output":"1.12","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":" $ 1.12 XYZ ","output":"1.12","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":" 1,012","output":"1012","detection":"US","reasoning":"Remove any non numbers other than periods and commas. Removed thousands seperators"},{"input":" 1.12 ","output":"1.12","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$1,12","output":"1.12","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$1.12","output":"1.12","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"1,12$","output":"1.12","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"1.12","output":"1.12","detection":"US","reasoning":"Do nothing"},{"input":"1.12$","output":"1.12","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$12","output":"12","detection":"UNIVERSAL","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$12,00","output":"12","detection":"CA-FR","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"$12.00","output":"12","detection":"US","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"12","output":"12","detection":"UNIVERSAL","reasoning":"No changes"},{"input":"12,00$","output":"12","detection":"CA-FR","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"12.00","output":"12","detection":"US","reasoning":"Trimmed trailing zeroes"},{"input":"12.00$","output":"12","detection":"US","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"12$","output":"12","detection":"UNIVERSAL","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$12,1","output":"12.10","detection":"CA-FR","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$12,10","output":"12.10","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$12.1","output":"12.10","detection":"US","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas"},{"input":"$12.10","output":"12.10","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"12,1$","output":"12.10","detection":"CA-FR","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"12,10$","output":"12.10","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"12.1","output":"12.10","detection":"US","reasoning":"Add missing decimal value"},{"input":"12.1$","output":"12.10","detection":"US","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas"},{"input":"12.10","output":"12.10","detection":"US","reasoning":"Do nothing"},{"input":"12.10$","output":"12.10","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$12,12","output":"12.12","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$12.12","output":"12.12","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"12,12$","output":"12.12","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"12.12","output":"12.12","detection":"US","reasoning":"Do nothing"},{"input":"12.12$","output":"12.12","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$123","output":"123","detection":"UNIVERSAL","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$123,00","output":"123","detection":"CA-FR","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"$123.00","output":"123","detection":"US","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"123","output":"123","detection":"UNIVERSAL","reasoning":"No changes"},{"input":"123,00$","output":"123","detection":"CA-FR","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"123.00","output":"123","detection":"US","reasoning":"Trimmed trailing zeroes"},{"input":"123.00$","output":"123","detection":"US","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"123$","output":"123","detection":"UNIVERSAL","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$123,1","output":"123.10","detection":"CA-FR","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$123,10","output":"123.10","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$123.1","output":"123.10","detection":"US","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas"},{"input":"$123.10","output":"123.10","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"123,1$","output":"123.10","detection":"CA-FR","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"123,10$","output":"123.10","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"123.1","output":"123.10","detection":"US","reasoning":"Add missing decimal value"},{"input":"123.1$","output":"123.10","detection":"US","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas"},{"input":"123.10","output":"123.10","detection":"US","reasoning":"Do nothing"},{"input":"123.10$","output":"123.10","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$123,12","output":"123.12","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$123.12","output":"123.12","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"123,12$","output":"123.12","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"123.12","output":"123.12","detection":"US","reasoning":"Do nothing"},{"input":"123.12$","output":"123.12","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$1234","output":"1234","detection":"UNIVERSAL","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$1234,00","output":"1234","detection":"CA-FR","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"$1234.00","output":"1234","detection":"US","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"1,223","output":"1223","detection":"US","reasoning":"Removed thousands seperators"},{"input":"1,234,00","output":"1234","detection":"CA-FR","reasoning":"Removed thousands seperators. Trimmed trailing zeroes"},{"input":"1,234.00","output":"1234","detection":"US","reasoning":"Removed thousands seperators. Trimmed trailing zeroes"},{"input":"1.234","output":"1234","detection":"CA-FR","reasoning":"Removed thousands seperators"},{"input":"1234","output":"1234","detection":"UNIVERSAL","reasoning":"No changes"},{"input":"1234,00$","output":"1234","detection":"CA-FR","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"1234.00","output":"1234","detection":"US","reasoning":"Trimmed trailing zeroes"},{"input":"1234.00$","output":"1234","detection":"US","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"1234$","output":"1234","detection":"UNIVERSAL","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$1234,1","output":"1234.10","detection":"CA-FR","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$1234,10","output":"1234.10","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$1234.1","output":"1234.10","detection":"US","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas"},{"input":"$1234.10","output":"1234.10","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"1,234.10","output":"1234.10","detection":"US","reasoning":"Removed thousands seperators"},{"input":"1.234,10","output":"1234.10","detection":"CA-FR","reasoning":"Removed thousands seperators. Swapped decimal seperator for period."},{"input":"1234,1$","output":"1234.10","detection":"CA-FR","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"1234,10$","output":"1234.10","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"1234.1","output":"1234.10","detection":"US","reasoning":"Add missing decimal value"},{"input":"1234.1$","output":"1234.10","detection":"US","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas"},{"input":"1234.10","output":"1234.10","detection":"US","reasoning":"Do nothing"},{"input":"1234.10$","output":"1234.10","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$1234,12","output":"1234.12","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$1234.12","output":"1234.12","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"1234,12$","output":"1234.12","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"1234.12","output":"1234.12","detection":"US","reasoning":"Do nothing"},{"input":"1234.12$","output":"1234.12","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$12345","output":"12345","detection":"UNIVERSAL","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$12345,00","output":"12345","detection":"CA-FR","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"$12345.00","output":"12345","detection":"US","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"12,345.00","output":"12345","detection":"US","reasoning":"Removed thousands seperators. Trimmed trailing zeroes"},{"input":"12.345,00","output":"12345","detection":"CA-FR","reasoning":"Removed thousands seperators. Trimmed trailing zeroes"},{"input":"12345","output":"12345","detection":"UNIVERSAL","reasoning":"No changes"},{"input":"12345,00$","output":"12345","detection":"CA-FR","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"12345.00","output":"12345","detection":"US","reasoning":"Trimmed trailing zeroes"},{"input":"12345.00$","output":"12345","detection":"US","reasoning":"Trimmed trailing zeroes. Remove any non numbers other than periods and commas"},{"input":"12345$","output":"12345","detection":"UNIVERSAL","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$12345,1","output":"12345.10","detection":"CA-FR","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$12345,10","output":"12345.10","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$12345.1","output":"12345.10","detection":"US","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas"},{"input":"$12345.10","output":"12345.10","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"12,345.10","output":"12345.10","detection":"US","reasoning":"Removed thousands seperators"},{"input":"12.345,10","output":"12345.10","detection":"CA-FR","reasoning":"Removed thousands seperators. Swapped decimal seperator for period."},{"input":"12345,1$","output":"12345.10","detection":"CA-FR","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"12345,10$","output":"12345.10","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"12345.1","output":"12345.10","detection":"US","reasoning":"Add missing decimal value"},{"input":"12345.1$","output":"12345.10","detection":"US","reasoning":"Add missing decimal value. Remove any non numbers other than periods and commas"},{"input":"12345.10","output":"12345.10","detection":"US","reasoning":"Do nothing"},{"input":"12345.10$","output":"12345.10","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"$12345,12","output":"12345.12","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"$12345.12","output":"12345.12","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"12345,12$","output":"12345.12","detection":"CA-FR","reasoning":"Remove any non numbers other than periods and commas. Swapped decimal seperator for period."},{"input":"12345.12","output":"12345.12","detection":"US","reasoning":"Do nothing"},{"input":"12345.12$","output":"12345.12","detection":"US","reasoning":"Remove any non numbers other than periods and commas"},{"input":"123,456.00","output":"123456","detection":"US","reasoning":"Removed thousands seperators. Trimmed trailing zeroes"},{"input":"123.456,00","output":"123456","detection":"CA-FR","reasoning":"Removed thousands seperators. Trimmed trailing zeroes"},{"input":"123,456.10","output":"123456.10","detection":"US","reasoning":"Removed thousands seperators"},{"input":"123.456,10","output":"123456.10","detection":"CA-FR","reasoning":"Removed thousands seperators. Swapped decimal seperator for period."},{"input":"1,234,567.00","output":"1234567","detection":"US","reasoning":"Removed thousands seperators. Trimmed trailing zeroes"},{"input":"1.234.567,00","output":"1234567","detection":"CA-FR","reasoning":"Removed thousands seperators. Trimmed trailing zeroes"},{"input":"1,234,567.10","output":"1234567.10","detection":"US","reasoning":"Removed thousands seperators"},{"input":"1.234.567,10","output":"1234567.10","detection":"CA-FR","reasoning":"Removed thousands seperators. Swapped decimal seperator for period."}];
+/* ==CASES_END== */
+
+/* ==MISLABELS_START==
+ * Rows where cases.csv is internally inconsistent or wrong. Keyed by the trimmed
+ * input: { out, det, why }. The harness accepts such a row only if the engine
+ * produces { out, det }, and fails if a declared entry is never triggered (so the
+ * list cannot go stale). Empty = the sheet has no known-bad rows. */
+window.__MISLABELS__ = {};
+/* ==MISLABELS_END== */
+
+/* ---- UI wiring (browser only) ---- */
+(function () {
+  if (typeof document === 'undefined') return;
+  var N = window.CurrencyNormalizer;
+  var rawEl = document.getElementById('raw');
+  var outEl = document.getElementById('normalized');
+  var statusEl = document.getElementById('status');
+  var mDet = document.getElementById('m-det');
+  var mCur = document.getElementById('m-cur');
+  var mCents = document.getElementById('m-cents');
+
+  function render() {
+    var r = N.normalize(rawEl.value);
+    if (r.detection === 'EMPTY') {
+      outEl.value = ''; statusEl.className = 'status'; statusEl.textContent = 'Enter an amount above.';
+      mDet.textContent = '—'; mCur.textContent = '—'; mCents.textContent = '—'; return;
+    }
+    if (!r.valid) {
+      outEl.value = ''; statusEl.className = 'status err';
+      statusEl.textContent = 'Not a possible number — ' + r.reasoning;
+      mDet.textContent = 'IMPOSSIBLE'; mCur.textContent = '—'; mCents.textContent = '—'; return;
+    }
+    outEl.value = r.normalized;
+    statusEl.className = 'status ok';
+    statusEl.textContent = 'Normalized to ' + r.normalized + ' (' + r.currency + '). ' + r.reasoning;
+    mDet.textContent = r.detection; mCur.textContent = r.currency; mCents.textContent = String(r.cents);
+  }
+  rawEl.addEventListener('input', render);
+
+  var EXAMPLES = ['40.15$', '$25.5', '$55.123,45', '1 234,56 $', '1,234.56', '1.234,56',
+                  '1.234', '12.345,10', '1,00.10', '1,000.100,00', '1,012', 'XYZ', '0.0', '100'];
+  var box = document.getElementById('examples');
+  EXAMPLES.forEach(function (ex) {
+    var b = document.createElement('button');
+    b.className = 'chip'; b.type = 'button'; b.textContent = ex === '' ? '(empty)' : ex;
+    b.addEventListener('click', function () { rawEl.value = ex; render(); rawEl.focus(); });
+    box.appendChild(b);
+  });
+
+  /* ---- Test suite over cases.csv ---- */
+  function esc(x) { return String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  function runTests() {
+    var cases = window.__CASES__ || [];
+    var mis = window.__MISLABELS__ || {};
+    var pass = 0, mislabel = 0, fail = 0, rows = '';
+    cases.forEach(function (c) {
+      var r, threw = false;
+      try { r = N.normalize(c.input); } catch (e) { threw = true; r = { normalized: 'THREW:' + e, detection: 'ERR' }; }
+      var gotOut = r.normalized, gotDet = r.detection;
+      var exact = !threw && gotOut === c.output && gotDet === c.detection;
+      var cls, label;
+      if (exact) { pass++; cls = 'pass'; label = 'PASS'; }
+      else {
+        var m = mis[c.input.replace(/^\s+|\s+$/g, '')];
+        if (!threw && m && gotOut === m.out && gotDet === m.det) { mislabel++; cls = 'mislabel'; label = 'MISLABEL'; }
+        else { fail++; cls = 'fail'; label = 'FAIL'; }
+      }
+      rows += '<tr class="' + cls + '" data-s="' + cls + '" title="' + esc(r.reasoning || '') + '">' +
+        '<td class="in">' + (esc(c.input) || '<em>(empty)</em>') + '</td>' +
+        '<td>' + esc(c.output) + '</td><td>' + esc(gotOut) + '</td>' +
+        '<td>' + esc(c.detection) + '</td><td>' + esc(gotDet) + '</td>' +
+        '<td class="s">' + label + '</td></tr>';
+    });
+    document.getElementById('testBody').innerHTML = rows;
+    document.getElementById('testWrap').hidden = false;
+    document.getElementById('filters').hidden = false;
+    var sEl = document.getElementById('summary');
+    sEl.innerHTML = cases.length + ' rows · ' +
+      '<span style="color:var(--ok)">' + pass + ' pass</span> · ' +
+      '<span style="color:var(--warn)">' + mislabel + ' mislabel</span> · ' +
+      '<span style="color:' + (fail ? 'var(--err)' : 'var(--muted)') + '">' + fail + ' fail</span>';
+  }
+
+  document.getElementById('filters').addEventListener('click', function (e) {
+    if (e.target.tagName !== 'BUTTON') return;
+    var f = e.target.getAttribute('data-f');
+    [].forEach.call(this.children, function (b) { b.classList.toggle('active', b === e.target); });
+    [].forEach.call(document.querySelectorAll('#testBody tr'), function (tr) {
+      tr.style.display = (f === 'all' || tr.getAttribute('data-s') === f) ? '' : 'none';
+    });
+  });
+
+  document.getElementById('runTests').addEventListener('click', runTests);
+  if (/[?&]selftest\b/.test(location.search)) runTests();
+  render();
+})();
+</script>
+</body>
+</html>
