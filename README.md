@@ -51,3 +51,11 @@ Current status: **161 / 161 rows pass · 0 failures**, 300k-input fuzz clean.
 
 See [`TESTING.md`](TESTING.md) for the full testing plan, normalization rules,
 equivalence classes, `IMPOSSIBLE` rules, and residual risks.
+
+## Benchmark
+
+[`AGENTS.md`](AGENTS.md) is a frozen, self-contained benchmark brief: it states
+the problem, the output contract, and bundles [`test/cases.csv`](test/cases.csv)
+as the authoritative acceptance set, so different AI models can be asked to
+rebuild this tool from scratch and scored objectively (correctness +
+generalization + robustness + requirements) to compare progress over time.
