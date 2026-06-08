@@ -111,7 +111,8 @@ for (let i = 0; i < FUZZ_N; i++) {
 /* ================= Report ================= */
 const pct = (n) => (100 * n / rows.length).toFixed(1) + '%';
 console.log('\n================ Normalizer vs ENgrid native (cleanAmount) ================');
-console.log('Benchmark: ' + rows.length + ' rows from cases.csv\n');
+console.log('Benchmark: ' + rows.length + ' rows from cases.csv');
+console.log('"This repo" = the reference index.html built by Claude Opus 4.8 Max.\n');
 console.log('                                    THIS REPO        ENgrid cleanAmount');
 console.log('  Normalized output matches sheet:  ' + (oursOut + '/' + rows.length).padEnd(15) + (engOut + '/' + rows.length));
 console.log('  Output match rate:                ' + pct(oursOut).padEnd(15) + pct(engOut));

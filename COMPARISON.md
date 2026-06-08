@@ -10,6 +10,10 @@ handling in [ENgrid](https://github.com/4site-interactive-studios/engrid-scripts
 problem in production. Use this as a reusable assessment: ENgrid is the **baseline
 to beat**, and any future rebuild (human or AI) can be scored the same way.
 
+- **"This repo" / reference implementation:** the `index.html` normalizer in this
+  repository, **built from scratch by Claude Opus 4.8 Max** (2026-06-08). It is the
+  reference entry on the benchmark; everywhere below, the **"This repo"** column is
+  that Opus 4.8 Max implementation.
 - **ENgrid version measured:** `0.25.6` (commit `e538e7e8`)
 - **Date:** 2026-06-08
 - **Method:** ENgrid's `ENGrid.cleanAmount()` was ported verbatim (TS annotations
@@ -48,7 +52,7 @@ the edges and in scope:
 
 ### Benchmark — 161 rows of `cases.csv`
 
-| Measure | This repo | ENgrid `cleanAmount` |
+| Measure | This repo (Opus 4.8 Max) | ENgrid `cleanAmount` |
 |---|---|---|
 | Normalized **output** matches sheet | **161 / 161 (100%)** | 160 / 161 (99.4%) |
 | **Format detection** matches sheet | **161 / 161 (100%)** | n/a — *no detection feature* |
@@ -57,7 +61,7 @@ the edges and in scope:
 
 ### Robustness — identical 300,000-input fuzz (digits, separators, symbols, unicode, control chars)
 
-| Measure | This repo | ENgrid `cleanAmount` |
+| Measure | This repo (Opus 4.8 Max) | ENgrid `cleanAmount` |
 |---|---|---|
 | Threw an exception | 0 | 0 |
 | Produced **`NaN`** | **0** | **23,591 (≈7.9%)** |
@@ -90,7 +94,7 @@ the field as the literal text `"NaN"` (`NaN.toFixed(2)`) or as a `NaN` amount.
 
 ✅ full · ⚠️ partial / caveat · ❌ absent · ➖ intentionally out of scope
 
-| Capability | This repo (normalizer) | ENgrid `0.25.6` (native) |
+| Capability | This repo (Opus 4.8 Max) | ENgrid `0.25.6` (native) |
 |---|---|---|
 | **US format** (`$1,234.56`, `40.15$`, `$25.5`) | ✅ | ✅ |
 | **French-Canadian** (`1 234,56 $`) | ✅ | ✅ |
