@@ -177,22 +177,13 @@ wrapped in `try/catch`; without it, full-width folding is skipped and ASCII inpu
 is unaffected. Verified on Node 16; targets current Chrome/Edge/Firefox/Safari +
 iOS/Android.
 
----
-
-## 9. Residual risks (and why they are acceptable)
-
-| Risk | Mitigation |
-|------|------------|
-| Sheet rows `1,223` / `1,012` were inconsistent | Corrected in `cases.csv` (§4); engine produces the consistent value; suite now fully green. |
-| Lone-separator 3-digit ambiguity (`1.234` = 1234 not 1.234) | Resolved deterministically per the sheet; the value and `$` rendering are shown before submit. |
-| Full-width / Arabic-Indic / Persian numerals | Folded to ASCII so they normalize correctly. |
-| Other numeral scripts (Devanagari, Thai…) | Stripped → IMPOSSIBLE (fail-closed), never a wrong value. Out of scope for US + fr-CA. |
-| Amount above ~$10 trillion | Rejected as too large rather than risking precision loss. |
-| Non-currency paste with no digits | IMPOSSIBLE; no value submitted. |
+> Reference-solution edge-case decisions and residual risks have been moved to
+> [`COMPARISON.md`](COMPARISON.md) (the grader/assessment doc) so this file does not
+> reveal how the tricky cases resolve to a candidate rebuilding from the brief.
 
 ---
 
-## 10. Regression policy
+## 9. Regression policy
 
 - `cases.csv` is the contract. Edit it, run `build-cases.js`, then `run-tests.js`;
   the embedded page data and the headless suite stay in lock-step.

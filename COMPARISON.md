@@ -158,3 +158,21 @@ To re-benchmark against a newer ENgrid, re-port `ENGrid.cleanAmount` (and the
 `other-amount.ts` field-format line) from the target version into
 `test/compare-engrid.js` and re-run. The ported copy is clearly attributed at the
 top of that file; ENgrid remains the source of truth for its own code.
+
+---
+
+## Reference solution — edge-case decisions (answer key)
+
+> Kept here in the grader/assessment doc — **not** in `TESTING.md` — so a candidate
+> rebuilding from the brief does not see how the tricky cases were resolved. These
+> are the deliberate decisions behind this repo's normalizer and the residual risks
+> they accept.
+
+| Decision / risk | How it is resolved (and why it is acceptable) |
+|---|---|
+| Sheet rows `1,223` / `1,012` were internally inconsistent | Corrected in `cases.csv`; the engine produces the consistent value (`1223`, `1012`); the suite is fully green. |
+| Lone-separator 3-digit ambiguity (`1.234` = `1234`, not `1.234`) | Resolved deterministically per the sheet; the value and the `$` rendering are shown before submit so a donor can catch a misread. |
+| Full-width / Arabic-Indic / Persian numerals | Folded to ASCII (NFKC + explicit digit/separator map) so they normalize correctly instead of being silently corrupted. |
+| Other numeral scripts (Devanagari, Thai, …) | Stripped → IMPOSSIBLE (fail-closed); never a wrong value. Out of scope for a US + fr-CA audience. |
+| Amount above ~$10 trillion (>13 integer digits) | Rejected as too large rather than risking precision loss (keeps integer-cent math exact within `Number.MAX_SAFE_INTEGER`). |
+| Non-currency paste with no digits | IMPOSSIBLE; no value submitted. |
